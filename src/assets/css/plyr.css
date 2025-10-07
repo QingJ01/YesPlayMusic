@@ -1660,7 +1660,7 @@ a.plyr__control::before {
   z-index: 3;
 }
 
-.plyr__ads::after:empty {
+.plyr__ads:empty::after {
   display: none;
 }
 
