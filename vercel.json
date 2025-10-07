@@ -1,6 +1,11 @@
 {
   "buildCommand": "yarn install --ignore-engines && yarn build",
   "installCommand": "yarn install --ignore-engines",
+  "build": {
+    "env": {
+      "NODE_OPTIONS": "--openssl-legacy-provider"
+    }
+  },
   "rewrites": [
     {
       "source": "/api/:match*",
