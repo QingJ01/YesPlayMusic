@@ -4,11 +4,11 @@
       v-if="settings.showPlaylistsByAppleMusic !== false"
       class="index-row first-row"
     >
-      <div class="title"> by Apple Music </div>
+      <div class="title"> QingJ's Music </div>
       <CoverRow
         :type="'playlist'"
-        :items="byAppleMusic"
-        sub-text="appleMusic"
+        :items="qingjMusicPlaylists"
+        sub-text="QingJ's Music"
         :image-size="1024"
       />
     </div>
