@@ -9,7 +9,7 @@
   "rewrites": [
     {
       "source": "/api/:match*",
-      "destination": "https://musicapi.byebug.cn/:match*"
+      "destination": "https://music-api.byebug.cn/:match*"
     }
   ]
 }
