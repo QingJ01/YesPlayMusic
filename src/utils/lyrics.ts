@@ -83,3 +83,22 @@ function trimContent(content: string) {
 	const t = content.trim();
 	return t.length < 1 ? content : t;
 }
+
+/**
+ * Copy lyric to clipboard
+ */
+export function copyLyric(lyric: string) {
+	if (navigator.clipboard) {
+		navigator.clipboard.writeText(lyric);
+	} else {
+		// Fallback for browsers that don't support clipboard API
+		const textArea = document.createElement('textarea');
+		textArea.value = lyric;
+		textArea.style.position = 'fixed';
+		textArea.style.opacity = '0';
+		document.body.appendChild(textArea);
+		textArea.select();
+		document.execCommand('copy');
+		document.body.removeChild(textArea);
+	}
+}

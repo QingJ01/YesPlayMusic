@@ -25,6 +25,11 @@ export function isAccountLoggedIn() {
 	return getCookie("MUSIC_U") !== undefined;
 }
 
+// 宽松登录检查（包括账号登录）
+export function isLooseLoggedIn() {
+	return isAccountLoggedIn();
+}
+
 export function doLogout() {
 	api.auth.logout();
 	removeCookie("MUSIC_U");

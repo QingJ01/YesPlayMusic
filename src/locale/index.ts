@@ -7,3 +7,6 @@ export const messages = {
 	"zh-CN": zhCN,
 	"zh-TW": zhTW,
 };
+
+// 默认导出 messages 对象
+export default messages;
