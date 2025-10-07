@@ -7,8 +7,8 @@
       <div class="title"> QingJ's Music </div>
       <CoverRow
         :type="'playlist'"
-        :items="qingjMusicPlaylists"
-        sub-text="QingJ's Music"
+        :items="byAppleMusic"
+        sub-text="appleMusic"
         :image-size="1024"
       />
     </div>
