@@ -309,7 +309,7 @@ import { formatTrackTime } from '@/utils/common';
 import { getLyric } from '@/api/track';
 import { lyricParser, copyLyric } from '@/utils/lyrics';
 import ButtonIcon from '@/components/ButtonIcon.vue';
-import * as Vibrant from 'node-vibrant/dist/vibrant.worker.min.js';
+import { Vibrant } from 'node-vibrant/worker';
 import Color from 'color';
 import { isAccountLoggedIn } from '@/utils/auth';
 import { hasListSource, getListSourcePath } from '@/utils/playList';
