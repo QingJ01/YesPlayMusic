@@ -1,4 +1,6 @@
 {
+  "buildCommand": "yarn install --ignore-engines && yarn build",
+  "installCommand": "yarn install --ignore-engines",
   "rewrites": [
     {
       "source": "/api/:match*",
