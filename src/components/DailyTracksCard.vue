@@ -12,64 +12,69 @@
       </div>
     </div>
     <button class="play-button" @click.stop="playDailyTracks">
-      <IconPlay />
+      <svg-icon icon-class="play" />
     </button>
   </div>
 </template>
 
-<script setup lang="ts">
-import { useStore } from "@/store/pinia";
-import * as api from "@/api";
-import { isAccountLoggedIn } from "@/utils/auth";
-import { noop, sample } from "es-toolkit";
-import { toast } from "vue-sonner";
-import { computed } from "vue";
-import { useRouter } from "vue-router";
-import { useI18n } from "vue-i18n";
-import { IconPlay } from "@/components/icon";
+<script>
+import locale from '@/locale';
+import { mapMutations, mapState, mapActions } from 'vuex';
+import { dailyRecommendTracks } from '@/api/playlist';
+import { isAccountLoggedIn } from '@/utils/auth';
+import sample from 'lodash/sample';
 
 const defaultCovers = [
-	"https://p2.music.126.net/0-Ybpa8FrDfRgKYCTJD8Xg==/109951164796696795.jpg",
-	"https://p2.music.126.net/QxJA2mr4hhb9DZyucIOIQw==/109951165422200291.jpg",
-	"https://p1.music.126.net/AhYP9TET8l-VSGOpWAKZXw==/109951165134386387.jpg",
+  'https://p2.music.126.net/0-Ybpa8FrDfRgKYCTJD8Xg==/109951164796696795.jpg',
+  'https://p2.music.126.net/QxJA2mr4hhb9DZyucIOIQw==/109951165422200291.jpg',
+  'https://p1.music.126.net/AhYP9TET8l-VSGOpWAKZXw==/109951165134386387.jpg',
 ];
 
-const { dailyTracks, updateDailyTracks, player } = useStore();
-const router = useRouter();
-const { t } = useI18n();
-
-const coverUrl = computed(() => {
-	return `${dailyTracks[0]?.al.picUrl || sample(defaultCovers)}?param=1024y1024`;
-});
-
-function loadDailyTracks() {
-	if (!isAccountLoggedIn()) return;
-	api.playlist
-		.dailyRecommendTracks()
-		.then((result) => {
-			updateDailyTracks(result.data.dailySongs);
-		})
-		.catch(noop);
-}
-
-function goToDailyTracks() {
-	router.push({ name: "dailySongs" });
-}
-
-function playDailyTracks() {
-	if (!isAccountLoggedIn()) {
-		toast(t("toast.needToLogin"));
-		return;
-	}
-	let trackIDs = dailyTracks.map((t) => t.id);
-	player.replacePlaylist(trackIDs, "/daily/songs", "url", dailyTracks[0].id);
-}
-
-if (dailyTracks.length === 0) loadDailyTracks();
-
-defineExpose({
-	loadDailyTracks,
-});
+export default {
+  name: 'DailyTracksCard',
+  data() {
+    return { useAnimation: false };
+  },
+  computed: {
+    ...mapState(['dailyTracks']),
+    coverUrl() {
+      return `${
+        this.dailyTracks[0]?.al.picUrl || sample(defaultCovers)
+      }?param=1024y1024`;
+    },
+  },
+  created() {
+    if (this.dailyTracks.length === 0) this.loadDailyTracks();
+  },
+  methods: {
+    ...mapActions(['showToast']),
+    ...mapMutations(['updateDailyTracks']),
+    loadDailyTracks() {
+      if (!isAccountLoggedIn()) return;
+      dailyRecommendTracks()
+        .then(result => {
+          this.updateDailyTracks(result.data.dailySongs);
+        })
+        .catch(() => {});
+    },
+    goToDailyTracks() {
+      this.$router.push({ name: 'dailySongs' });
+    },
+    playDailyTracks() {
+      if (!isAccountLoggedIn()) {
+        this.showToast(locale.t('toast.needToLogin'));
+        return;
+      }
+      let trackIDs = this.dailyTracks.map(t => t.id);
+      this.$store.state.player.replacePlaylist(
+        trackIDs,
+        '/daily/songs',
+        'url',
+        this.dailyTracks[0].id
+      );
+    },
+  },
+};
 </script>
 
 <style lang="scss" scoped>
@@ -110,7 +115,6 @@ img {
   align-items: center;
   margin-left: 25px;
   user-select: none;
-
   .title {
     height: 100%;
     width: 100%;
@@ -152,7 +156,6 @@ img {
   &:hover {
     background: rgba(255, 255, 255, 0.44);
   }
-
   &:active {
     transform: scale(0.94);
   }
@@ -162,7 +165,6 @@ img {
   0% {
     transform: translateY(0);
   }
-
   100% {
     transform: translateY(-50%);
   }

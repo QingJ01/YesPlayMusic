@@ -1,110 +1,147 @@
 <template>
-  <Navbar v-show="showNavbar" ref="navbar" />
-  <ScrollArea as="main" scroll-bar-class="top-[64px]! bottom-[64px]! h-[auto]!"
-    class="fixed! left-0 right-0 top-0 bottom-0">
-    <router-view v-slot="{ Component }">
-      <keep-alive :include="keepAliveComponents">
-        <component :is="Component" />
+  <div id="app" :class="{ 'user-select-none': userSelectNone }">
+    <Scrollbar v-show="!showLyrics" ref="scrollbar" />
+    <Navbar v-show="showNavbar" ref="navbar" />
+    <main
+      ref="main"
+      :style="{ overflow: enableScrolling ? 'auto' : 'hidden' }"
+      @scroll="handleScroll"
+    >
+      <keep-alive>
+        <router-view v-if="$route.meta.keepAlive"></router-view>
       </keep-alive>
-    </router-view>
-  </ScrollArea>
-  <transition name="slide-up">
-    <Player v-if="enablePlayer" v-show="showPlayer" ref="player" />
-  </transition>
-
-  <ModalAddTrackToPlaylist v-if="isAccountLoggedIn" />
-  <ModalNewPlaylist v-if="isAccountLoggedIn" />
-  <transition v-if="enablePlayer" name="slide-up">
-    <Lyrics v-show="showLyrics" />
-  </transition>
-
-  <Toaster />
+      <router-view v-if="!$route.meta.keepAlive"></router-view>
+    </main>
+    <transition name="slide-up">
+      <Player v-if="enablePlayer" v-show="showPlayer" ref="player" />
+    </transition>
+    <Toast />
+    <ModalAddTrackToPlaylist v-if="isAccountLoggedIn" />
+    <ModalNewPlaylist v-if="isAccountLoggedIn" />
+    <transition v-if="enablePlayer" name="slide-up">
+      <Lyrics v-show="showLyrics" />
+    </transition>
+  </div>
 </template>
 
-<script setup lang="ts">
-import { Toaster } from "@/components/ui/sonner";
-import "vue-sonner/style.css";
-import { computed, onMounted } from "vue";
-import { useRoute, useRouter } from "vue-router";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { useStore } from "@/store/pinia";
-import * as auth from "@/utils/auth";
-import ModalAddTrackToPlaylist from "./components/ModalAddTrackToPlaylist.vue";
-import ModalNewPlaylist from "./components/ModalNewPlaylist.vue";
-import Navbar from "./components/Navbar.vue";
-import Player from "./components/Player.vue";
-import Lyrics from "./views/lyrics.vue";
+<script>
+import ModalAddTrackToPlaylist from './components/ModalAddTrackToPlaylist.vue';
+import ModalNewPlaylist from './components/ModalNewPlaylist.vue';
+import Scrollbar from './components/Scrollbar.vue';
+import Navbar from './components/Navbar.vue';
+import Player from './components/Player.vue';
+import Toast from './components/Toast.vue';
+import { ipcRenderer } from './electron/ipcRenderer';
+import { isAccountLoggedIn, isLooseLoggedIn } from '@/utils/auth';
+import Lyrics from './views/lyrics.vue';
+import { mapState } from 'vuex';
 
-defineOptions({ name: "App" });
-
-const store = useStore();
-const router = useRouter();
-
-const keepAliveComponents = computed(() => router.getRoutes().filter(route => route.meta.keepAlive).map(route => route.name as string));
-
-
-const showLyrics = computed(() => store.showLyrics);
-const player = computed(() => store.player);
-
-const isAccountLoggedIn = computed(() => auth.isAccountLoggedIn());
-const route = useRoute();
-
-const showPlayer = computed(() => {
-  return !["mv", "loginUsername", "login", "lastfmCallback"].includes(route.name as string);
-});
-
-const enablePlayer = computed(() => {
-  return player.value.enabled && route.name !== "lastfmCallback";
-});
-
-const showNavbar = computed(() => {
-  return route.name !== "lastfmCallback";
-});
-
-const handleKeydown = (e: KeyboardEvent) => {
-  if (e.code === "Space") {
-    if (e.target && "tagName" in e.target && e.target.tagName === "INPUT") return false;
-    if (route.name === "mv") return false;
-    e.preventDefault();
-    player.value.playOrPause();
-  }
+export default {
+  name: 'App',
+  components: {
+    Navbar,
+    Player,
+    Toast,
+    ModalAddTrackToPlaylist,
+    ModalNewPlaylist,
+    Lyrics,
+    Scrollbar,
+  },
+  data() {
+    return {
+      isElectron: process.env.IS_ELECTRON, // true || undefined
+      userSelectNone: false,
+    };
+  },
+  computed: {
+    ...mapState(['showLyrics', 'settings', 'player', 'enableScrolling']),
+    isAccountLoggedIn() {
+      return isAccountLoggedIn();
+    },
+    showPlayer() {
+      return (
+        [
+          'mv',
+          'loginUsername',
+          'login',
+          'loginAccount',
+          'lastfmCallback',
+        ].includes(this.$route.name) === false
+      );
+    },
+    enablePlayer() {
+      return this.player.enabled && this.$route.name !== 'lastfmCallback';
+    },
+    showNavbar() {
+      return this.$route.name !== 'lastfmCallback';
+    },
+  },
+  created() {
+    if (this.isElectron) ipcRenderer(this);
+    window.addEventListener('keydown', this.handleKeydown);
+    this.fetchData();
+  },
+  methods: {
+    handleKeydown(e) {
+      if (e.code === 'Space') {
+        if (e.target.tagName === 'INPUT') return false;
+        if (this.$route.name === 'mv') return false;
+        e.preventDefault();
+        this.player.playOrPause();
+      }
+    },
+    fetchData() {
+      if (!isLooseLoggedIn()) return;
+      this.$store.dispatch('fetchLikedSongs');
+      this.$store.dispatch('fetchLikedSongsWithDetails');
+      this.$store.dispatch('fetchLikedPlaylist');
+      if (isAccountLoggedIn()) {
+        this.$store.dispatch('fetchLikedAlbums');
+        this.$store.dispatch('fetchLikedArtists');
+        this.$store.dispatch('fetchLikedMVs');
+        this.$store.dispatch('fetchCloudDisk');
+      }
+    },
+    handleScroll() {
+      this.$refs.scrollbar.handleScroll();
+    },
+  },
 };
-
-function fetchData() {
-  if (!auth.isAccountLoggedIn()) return;
-  store.fetchLikedSongs();
-  store.fetchLikedSongsWithDetails();
-  store.fetchLikedPlaylist();
-  store.fetchLikedAlbums();
-  store.fetchLikedArtists();
-  store.fetchLikedMVs();
-  store.fetchCloudDisk();
-}
-
-onMounted(() => {
-  window.addEventListener("keydown", handleKeydown);
-  fetchData();
-});
 </script>
 
-<style>
-main>[data-reka-scroll-area-viewport] {
+<style lang="scss">
+#app {
+  width: 100%;
+  transition: all 0.4s;
+}
+
+main {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  left: 0;
+  overflow: auto;
   padding: 64px 10vw 96px 10vw;
   box-sizing: border-box;
+  scrollbar-width: none; // firefox
 }
 
 @media (max-width: 1336px) {
-  main>[data-reka-scroll-area-viewport] {
+  main {
     padding: 64px 5vw 96px 5vw;
   }
+}
+
+main::-webkit-scrollbar {
+  width: 0px;
 }
 
 .slide-up-enter-active,
 .slide-up-leave-active {
   transition: transform 0.4s;
 }
-
-.slide-up-enter-from,
+.slide-up-enter,
 .slide-up-leave-to {
   transform: translateY(100%);
 }

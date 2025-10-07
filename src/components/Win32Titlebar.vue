@@ -22,29 +22,45 @@
   </div>
 </template>
 
-<script setup lang="ts">
-import "@vscode/codicons/dist/codicon.css";
-import { ref, computed } from "vue";
-import { useStore } from "@/store/pinia";
+<script>
+// icons by https://github.com/microsoft/vscode-codicons
+import 'vscode-codicons/dist/codicon.css';
 
-const isMaximized = ref(false);
+import { mapState } from 'vuex';
 
-const title = computed(() => useStore().title);
+const electron =
+  process.env.IS_ELECTRON === true ? window.require('electron') : null;
+const ipcRenderer =
+  process.env.IS_ELECTRON === true ? electron.ipcRenderer : null;
 
-if (window.IS_ELECTRON === true) {
-	window.ipcRenderer?.on("isMaximized", (_, value) => {
-		isMaximized.value = value;
-	});
-}
-
-const windowMinimize = () => {
-	window.ipcRenderer?.send("minimize");
-};
-const windowMaxRestore = () => {
-	window.ipcRenderer?.send("maximizeOrUnmaximize");
-};
-const windowClose = () => {
-	window.ipcRenderer?.send("close");
+export default {
+  name: 'Win32Titlebar',
+  data() {
+    return {
+      isMaximized: false,
+    };
+  },
+  computed: {
+    ...mapState(['title']),
+  },
+  created() {
+    if (process.env.IS_ELECTRON === true) {
+      ipcRenderer.on('isMaximized', (_, value) => {
+        this.isMaximized = value;
+      });
+    }
+  },
+  methods: {
+    windowMinimize() {
+      ipcRenderer.send('minimize');
+    },
+    windowMaxRestore() {
+      ipcRenderer.send('maximizeOrUnmaximize');
+    },
+    windowClose() {
+      ipcRenderer.send('close');
+    },
+  },
 };
 </script>
 
@@ -64,6 +80,7 @@ const windowClose = () => {
   .title {
     padding: 8px 12px;
     font-size: 12px;
+    font-family: 'Segoe UI', 'Microsoft YaHei UI', 'Microsoft YaHei', sans-serif;
   }
   .controls {
     height: 32px;

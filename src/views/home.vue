@@ -4,9 +4,9 @@
       v-if="settings.showPlaylistsByAppleMusic !== false"
       class="index-row first-row"
     >
-      <div class="title" @click="toast('Hello')"> by Apple Music </div>
+      <div class="title"> by Apple Music </div>
       <CoverRow
-        type="playlist"
+        :type="'playlist'"
         :items="byAppleMusic"
         sub-text="appleMusic"
         :image-size="1024"
@@ -20,7 +20,7 @@
         }}</router-link>
       </div>
       <CoverRow
-        type="playlist"
+        :type="'playlist'"
         :items="recommendPlaylist.items"
         sub-text="copywriter"
       />
@@ -28,7 +28,7 @@
     <div class="index-row">
       <div class="title"> For You </div>
       <div class="for-you-row">
-        <DailyTracksCard ref="dailyTracksCardRef" />
+        <DailyTracksCard ref="DailyTracksCard" />
         <FMCard />
       </div>
     </div>
@@ -68,137 +68,91 @@
   </div>
 </template>
 
-<script setup lang="ts">
-import { ref, onActivated } from "vue";
-import { useStore } from "@/store/pinia";
-import { toast } from "vue-sonner";
-import * as api from "@/api";
-import { byAppleMusic } from "@/utils/staticData";
-import { getRecommendPlayList } from "@/utils/playList";
-import NProgress from "nprogress";
-import CoverRow from "@/components/CoverRow.vue";
-import FMCard from "@/components/FMCard.vue";
-import DailyTracksCard from "@/components/DailyTracksCard.vue";
+<script>
+import { toplists } from '@/api/playlist';
+import { toplistOfArtists } from '@/api/artist';
+import { newAlbums } from '@/api/album';
+import { byAppleMusic } from '@/utils/staticData';
+import { getRecommendPlayList } from '@/utils/playList';
+import NProgress from 'nprogress';
+import { mapState } from 'vuex';
+import CoverRow from '@/components/CoverRow.vue';
+import FMCard from '@/components/FMCard.vue';
+import DailyTracksCard from '@/components/DailyTracksCard.vue';
 
-// 定义接口
-interface PlaylistItem {
-	id: number;
-	name: string;
-	coverImgUrl: string;
-	copywriter?: string;
-	updateFrequency?: string;
-	[key: string]: any;
-}
+export default {
+  name: 'Home',
+  components: { CoverRow, FMCard, DailyTracksCard },
+  data() {
+    return {
+      show: false,
+      recommendPlaylist: { items: [] },
+      newReleasesAlbum: { items: [] },
+      topList: {
+        items: [],
+        ids: [19723756, 180106, 60198, 3812895, 60131],
+      },
+      recommendArtists: {
+        items: [],
+        indexs: [],
+      },
+    };
+  },
+  computed: {
+    ...mapState(['settings']),
+    byAppleMusic() {
+      return byAppleMusic;
+    },
+  },
+  activated() {
+    this.loadData();
+    this.$parent.$refs.scrollbar.restorePosition();
+  },
+  methods: {
+    loadData() {
+      setTimeout(() => {
+        if (!this.show) NProgress.start();
+      }, 1000);
+      getRecommendPlayList(10, false).then(items => {
+        this.recommendPlaylist.items = items;
+        NProgress.done();
+        this.show = true;
+      });
+      newAlbums({
+        area: this.settings.musicLanguage ?? 'ALL',
+        limit: 10,
+      }).then(data => {
+        this.newReleasesAlbum.items = data.albums;
+      });
 
-interface AlbumItem {
-	id: number;
-	name: string;
-	picUrl: string;
-	artist: {
-		id: number;
-		name: string;
-	};
-	[key: string]: any;
-}
-
-interface ArtistItem {
-	id: number;
-	name: string;
-	img1v1Url: string;
-	[key: string]: any;
-}
-
-interface RecommendPlaylist {
-	items: PlaylistItem[];
-}
-
-interface NewReleasesAlbum {
-	items: AlbumItem[];
-}
-
-interface TopList {
-	items: PlaylistItem[];
-	ids: number[];
-}
-
-interface RecommendArtists {
-	items: ArtistItem[];
-	indexs: number[];
-}
-
-const { settings } = useStore();
-
-// 响应式数据
-const show = ref(false);
-const recommendPlaylist = ref<RecommendPlaylist>({ items: [] });
-const newReleasesAlbum = ref<NewReleasesAlbum>({ items: [] });
-const topList = ref<TopList>({
-	items: [],
-	ids: [19723756, 180106, 60198, 3812895, 60131],
-});
-const recommendArtists = ref<RecommendArtists>({
-	items: [],
-	indexs: [],
-});
-
-// 模板引用
-const dailyTracksCardRef = ref<InstanceType<typeof DailyTracksCard>>();
-
-// 生命周期
-onActivated(() => {
-	loadData();
-	// TODO scrollbar.restorePosition?.();
-});
-
-// 方法
-const loadData = () => {
-	setTimeout(() => {
-		if (!show.value) NProgress.start();
-	}, 1000);
-
-	getRecommendPlayList(10, false).then((items) => {
-		recommendPlaylist.value.items = items;
-		NProgress.done();
-		show.value = true;
-	});
-
-	api.album
-		.newAlbums({
-			area: settings.musicLanguage ?? "ALL",
-			limit: 10,
-		})
-		.then((data) => {
-			newReleasesAlbum.value.items = data.albums;
-		});
-
-	const toplistOfArtistsAreaTable: Record<string, number | null> = {
-		all: null,
-		zh: 1,
-		ea: 2,
-		jp: 4,
-		kr: 3,
-	};
-
-	const area = toplistOfArtistsAreaTable[settings.musicLanguage ?? "all"];
-	if (area !== null) {
-		api.artist.toplistOfArtists(area).then((data) => {
-			const indexs: number[] = [];
-			while (indexs.length < 6) {
-				const tmp = ~~(Math.random() * 100);
-				if (!indexs.includes(tmp)) indexs.push(tmp);
-			}
-			recommendArtists.value.indexs = indexs;
-			recommendArtists.value.items = data.list.artists.filter((l: ArtistItem, index: number) =>
-				indexs.includes(index),
-			);
-		});
-	}
-
-	api.playlist.toplists().then((data) => {
-		topList.value.items = data.list.filter((l: PlaylistItem) => topList.value.ids.includes(l.id));
-	});
-
-	dailyTracksCardRef.value?.loadDailyTracks();
+      const toplistOfArtistsAreaTable = {
+        all: null,
+        zh: 1,
+        ea: 2,
+        jp: 4,
+        kr: 3,
+      };
+      toplistOfArtists(
+        toplistOfArtistsAreaTable[this.settings.musicLanguage ?? 'all']
+      ).then(data => {
+        let indexs = [];
+        while (indexs.length < 6) {
+          let tmp = ~~(Math.random() * 100);
+          if (!indexs.includes(tmp)) indexs.push(tmp);
+        }
+        this.recommendArtists.indexs = indexs;
+        this.recommendArtists.items = data.list.artists.filter((l, index) =>
+          indexs.includes(index)
+        );
+      });
+      toplists().then(data => {
+        this.topList.items = data.list.filter(l =>
+          this.topList.ids.includes(l.id)
+        );
+      });
+      this.$refs.DailyTracksCard.loadDailyTracks();
+    },
+  },
 };
 </script>
 

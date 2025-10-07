@@ -7,44 +7,53 @@
 
     <TrackList
       :tracks="dailyTracks"
-      type="playlist" 
+      type="playlist"
       dbclick-track-func="dailyTracks"
     />
   </div>
 </template>
 
-<script setup lang="ts">
-import { ref, onMounted } from "vue";
-import { useStore } from "@/store/pinia";
-import NProgress from "nprogress";
-import * as api from "@/api";
-import TrackList from "@/components/TrackList.vue";
+<script>
+import { mapMutations, mapState } from 'vuex';
+import NProgress from 'nprogress';
+import { dailyRecommendTracks } from '@/api/playlist';
 
-const { dailyTracks, updateDailyTracks } = useStore();
+import TrackList from '@/components/TrackList.vue';
 
-// 响应式数据
-const show = ref(false);
-
-// 生命周期
-onMounted(() => {
-	if (dailyTracks.length === 0) {
-		setTimeout(() => {
-			if (!show.value) NProgress.start();
-		}, 1000);
-		loadDailyTracks();
-	} else {
-		show.value = true;
-	}
-	// TODO scrollTo(0, 0);
-});
-
-// 方法
-const loadDailyTracks = () => {
-	api.playlist.dailyRecommendTracks().then((result) => {
-		updateDailyTracks(result.data.dailySongs);
-		NProgress.done();
-		show.value = true;
-	});
+export default {
+  name: 'DailyTracks',
+  components: {
+    TrackList,
+  },
+  data() {
+    return {
+      show: false,
+    };
+  },
+  computed: {
+    ...mapState(['player', 'data', 'dailyTracks']),
+  },
+  created() {
+    if (this.dailyTracks.length === 0) {
+      setTimeout(() => {
+        if (!this.show) NProgress.start();
+      }, 1000);
+      this.loadDailyTracks();
+    } else {
+      this.show = true;
+    }
+    this.$parent.$refs.main.scrollTo(0, 0);
+  },
+  methods: {
+    ...mapMutations(['updateDailyTracks']),
+    loadDailyTracks() {
+      dailyRecommendTracks().then(result => {
+        this.updateDailyTracks(result.data.dailySongs);
+        NProgress.done();
+        this.show = true;
+      });
+    },
+  },
 };
 </script>
 
@@ -86,6 +95,11 @@ const loadDailyTracks = () => {
     animation-name: letterSpacing4;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+    // background-image: linear-gradient(
+    //   225deg,
+    //   var(--color-primary),
+    //   var(--color-primary)
+    // );
 
     img {
       height: 78px;

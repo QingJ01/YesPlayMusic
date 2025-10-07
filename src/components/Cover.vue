@@ -1,179 +1,171 @@
 <template>
-	<div
-		class="relative transition-transform duration-300"
-		:class="{ 'cover-hover': coverHover }"
-		@mouseover="focus = true"
-		@mouseleave="focus = false"
-		@click="clickCoverToPlay ? play() : goTo()"
-	>
-		<div class="relative">
-			<div class="shade">
-				<button v-show="focus" class="play-button" :style="playButtonStyles" @click.stop="play()">
-					<IconPlay />
-				</button>
-			</div>
-			<img :src="imageUrl" :style="imageStyles" loading="lazy" class="select-none" />
-			<transition v-if="coverHover || alwaysShowShadow" name="fade">
-				<div v-show="focus || alwaysShowShadow" class="shadow" :style="shadowStyles"></div>
-			</transition>
-		</div>
-	</div>
+  <div
+    class="cover"
+    :class="{ 'cover-hover': coverHover }"
+    @mouseover="focus = true"
+    @mouseleave="focus = false"
+    @click="clickCoverToPlay ? play() : goTo()"
+  >
+    <div class="cover-container">
+      <div class="shade">
+        <button
+          v-show="focus"
+          class="play-button"
+          :style="playButtonStyles"
+          @click.stop="play()"
+          ><svg-icon icon-class="play" />
+        </button>
+      </div>
+      <img :src="imageUrl" :style="imageStyles" loading="lazy" />
+      <transition v-if="coverHover || alwaysShowShadow" name="fade">
+        <div
+          v-show="focus || alwaysShowShadow"
+          class="shadow"
+          :style="shadowStyles"
+        ></div>
+      </transition>
+    </div>
+  </div>
 </template>
 
-<script setup lang="ts">
-import { type CSSProperties, computed, ref } from "vue";
-import { useRouter } from "vue-router";
-import { IconPlay } from "@/components/icon";
-import { useStore } from "@/store/pinia";
-
-const { player } = useStore();
-const playActions = {
-	album: player.playAlbumByID,
-	playlist: player.playPlaylistByID,
-	artist: player.playArtistByID,
-};
-
-interface Props {
-	id: number;
-	type: keyof typeof playActions;
-	imageUrl: string;
-	fixedSize?: number;
-	playButtonSize?: number;
-	coverHover?: boolean;
-	alwaysShowPlayButton?: boolean;
-	alwaysShowShadow?: boolean;
-	clickCoverToPlay?: boolean;
-	shadowMargin?: number;
-	radius?: number;
-}
-
-const props = withDefaults(defineProps<Props>(), {
-	fixedSize: 0,
-	playButtonSize: 22,
-	coverHover: true,
-	alwaysShowPlayButton: true,
-	alwaysShowShadow: false,
-	clickCoverToPlay: false,
-	shadowMargin: 12,
-	radius: 12,
-});
-
-const router = useRouter();
-
-const focus = ref(false);
-
-const imageStyles = computed(() => {
-	const styles: CSSProperties = {};
-	if (props.fixedSize !== 0) {
-		styles.width = props.fixedSize + "px";
-		styles.height = props.fixedSize + "px";
-	}
-	if (props.type === "artist") styles.borderRadius = "50%";
-	return styles;
-});
-
-const playButtonStyles = computed(() => {
-	const styles: CSSProperties = {};
-	styles.width = props.playButtonSize + "%";
-	styles.height = props.playButtonSize + "%";
-	return styles;
-});
-
-const shadowStyles = computed(() => {
-	const styles: CSSProperties = {};
-	styles.backgroundImage = `url(${props.imageUrl})`;
-	if (props.type === "artist") styles.borderRadius = "50%";
-	return styles;
-});
-
-const play = () => {
-	playActions[props.type].bind(player)(props.id);
-};
-
-const goTo = () => {
-	router.push({ name: props.type, params: { id: props.id } });
+<script>
+export default {
+  props: {
+    id: { type: Number, required: true },
+    type: { type: String, required: true },
+    imageUrl: { type: String, required: true },
+    fixedSize: { type: Number, default: 0 },
+    playButtonSize: { type: Number, default: 22 },
+    coverHover: { type: Boolean, default: true },
+    alwaysShowPlayButton: { type: Boolean, default: true },
+    alwaysShowShadow: { type: Boolean, default: false },
+    clickCoverToPlay: { type: Boolean, default: false },
+    shadowMargin: { type: Number, default: 12 },
+    radius: { type: Number, default: 12 },
+  },
+  data() {
+    return {
+      focus: false,
+    };
+  },
+  computed: {
+    imageStyles() {
+      let styles = {};
+      if (this.fixedSize !== 0) {
+        styles.width = this.fixedSize + 'px';
+        styles.height = this.fixedSize + 'px';
+      }
+      if (this.type === 'artist') styles.borderRadius = '50%';
+      return styles;
+    },
+    playButtonStyles() {
+      let styles = {};
+      styles.width = this.playButtonSize + '%';
+      styles.height = this.playButtonSize + '%';
+      return styles;
+    },
+    shadowStyles() {
+      let styles = {};
+      styles.backgroundImage = `url(${this.imageUrl})`;
+      if (this.type === 'artist') styles.borderRadius = '50%';
+      return styles;
+    },
+  },
+  methods: {
+    play() {
+      const player = this.$store.state.player;
+      const playActions = {
+        album: player.playAlbumByID,
+        playlist: player.playPlaylistByID,
+        artist: player.playArtistByID,
+      };
+      playActions[this.type].bind(player)(this.id);
+    },
+    goTo() {
+      this.$router.push({ name: this.type, params: { id: this.id } });
+    },
+  },
 };
 </script>
 
 <style lang="scss" scoped>
+.cover {
+  position: relative;
+  transition: transform 0.3s;
+}
+.cover-container {
+  position: relative;
+}
 img {
-	border-radius: 0.75em;
-	width: 100%;
-	aspect-ratio: 1 / 1;
-	border: 1px solid rgba(0, 0, 0, 0.04);
+  border-radius: 0.75em;
+  width: 100%;
+  user-select: none;
+  aspect-ratio: 1 / 1;
+  border: 1px solid rgba(0, 0, 0, 0.04);
 }
 
 .cover-hover {
-	&:hover {
-		cursor: pointer;
-		/* transform: scale(1.02); */
-	}
+  &:hover {
+    cursor: pointer;
+    /* transform: scale(1.02); */
+  }
 }
 
 .shade {
-	position: absolute;
-	top: 0;
-	height: calc(100% - 3px);
-	width: 100%;
-	background: transparent;
-	display: flex;
-	justify-content: center;
-	align-items: center;
+  position: absolute;
+  top: 0;
+  height: calc(100% - 3px);
+  width: 100%;
+  background: transparent;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
-
 .play-button {
-	display: flex;
-	justify-content: center;
-	align-items: center;
-	color: white;
-	backdrop-filter: blur(8px);
-	background: rgba(255, 255, 255, 0.14);
-	border: 1px solid rgba(255, 255, 255, 0.08);
-	height: 22%;
-	width: 22%;
-	border-radius: 50%;
-	cursor: default;
-	transition: 0.2s;
-
-	.svg-icon {
-		width: 50%;
-
-		margin: {
-			left: 4px;
-		}
-	}
-
-	&:hover {
-		background: rgba(255, 255, 255, 0.28);
-	}
-
-	&:active {
-		transform: scale(0.94);
-	}
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: white;
+  backdrop-filter: blur(8px);
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  height: 22%;
+  width: 22%;
+  border-radius: 50%;
+  cursor: default;
+  transition: 0.2s;
+  .svg-icon {
+    width: 50%;
+    margin: {
+      left: 4px;
+    }
+  }
+  &:hover {
+    background: rgba(255, 255, 255, 0.28);
+  }
+  &:active {
+    transform: scale(0.94);
+  }
 }
 
 .shadow {
-	position: absolute;
-	top: 12px;
-	height: 100%;
-	width: 100%;
-	filter: blur(16px) opacity(0.6);
-	transform: scale(0.92, 0.96);
-	z-index: -1;
-	background-size: cover;
-	border-radius: 0.75em;
-	aspect-ratio: 1 / 1;
+  position: absolute;
+  top: 12px;
+  height: 100%;
+  width: 100%;
+  filter: blur(16px) opacity(0.6);
+  transform: scale(0.92, 0.96);
+  z-index: -1;
+  background-size: cover;
+  border-radius: 0.75em;
+  aspect-ratio: 1 / 1;
 }
 
 .fade-enter-active,
 .fade-leave-active {
-	transition: opacity 0.3s;
+  transition: opacity 0.3s;
 }
-
-.fade-enter-from,
-.fade-leave-to
-
-/* .fade-leave-active below version 2.1.8 */ {
-	opacity: 0;
+.fade-enter, .fade-leave-to /* .fade-leave-active below version 2.1.8 */ {
+  opacity: 0;
 }
 </style>
