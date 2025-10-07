@@ -5,7 +5,7 @@
   "rewrites": [
     {
       "source": "/api/:match*",
-      "destination": "https://netease-cloud-music-api-qingj01.vercel.app/:match*"
+      "destination": "https://musicapi.byebug.cn/:match*"
     }
   ]
 }
