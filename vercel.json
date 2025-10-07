@@ -9,7 +9,7 @@
   "rewrites": [
     {
       "source": "/api/:match*",
-      "destination": "netease-cloud-music-api-two-gamma-50.vercel.app/:match*"
+      "destination": "https://music-api.byebug.cn/:match*"
     }
   ]
 }
