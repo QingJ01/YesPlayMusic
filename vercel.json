@@ -1,0 +1,12 @@
+{
+  "buildCommand": "pnpm build",
+  "installCommand": "pnpm install",
+  "framework": "vite",
+  "rewrites": [
+    {
+      "source": "/api/:match*",
+      "destination": "https://netease-cloud-music-api-qingj01.vercel.app/:match*"
+    }
+  ]
+}
+
